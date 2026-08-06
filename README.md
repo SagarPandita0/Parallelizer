@@ -69,6 +69,23 @@ rebuild on that machine.
 
 This produces a Release build and installs it to `/Applications/Parallelizer.app`.
 
+## Browser Extension Integration
+
+Apps that pair with a browser extension through native messaging (for
+example ChatGPT in Chrome) register a host manifest under HOME — which for
+clones lands in the profile home, where real browsers never look. On every
+launch, the clone's shim publishes those manifests into your real home for
+each installed browser (Chrome and its variants, Chromium, Edge, Brave,
+Vivaldi, Firefox), rewriting each one to start the host through a wrapper
+that restores the clone's profile environment.
+
+Notes:
+
+- A browser extension can only talk to one instance per host name, so the
+  most recently launched registrant wins — the original app or a clone.
+- Registrations an app makes mid-session are published the next time the
+  clone launches.
+
 ## Keychain
 
 Each clone gets its own keychain (`login.keychain-db` inside the profile

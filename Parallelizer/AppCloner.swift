@@ -177,6 +177,20 @@ nonisolated final class AppCloner: Sendable {
         # launch path, then hands off to the real executable.
         \(exports)
         /bin/mkdir -p "$HOME" "$TMPDIR"
+
+        # Bootstrap a per-profile keychain so the clone can store credentials.
+        # Without it, apps hit "A keychain cannot be found" because the
+        # redirected HOME has no keychain. Created once with an empty
+        # password and kept unlocked; deleted along with the profile.
+        KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
+        if [ ! -f "$KEYCHAIN" ]; then
+            /bin/mkdir -p "$HOME/Library/Keychains"
+            /usr/bin/security create-keychain -p '' "$KEYCHAIN" 2>/dev/null
+            /usr/bin/security default-keychain -s "$KEYCHAIN" 2>/dev/null
+            /usr/bin/security login-keychain -s "$KEYCHAIN" 2>/dev/null
+            /usr/bin/security set-keychain-settings "$KEYCHAIN" 2>/dev/null
+        fi
+        /usr/bin/security unlock-keychain -p '' "$KEYCHAIN" 2>/dev/null
         \(electronSetup)SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
         \(launchLine)
         """

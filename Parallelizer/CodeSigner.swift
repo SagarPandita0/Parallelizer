@@ -1,9 +1,7 @@
 import Foundation
 
-final class CodeSigner {
-    nonisolated init() {}
-
-    func sign(appURL: URL) throws {
+nonisolated final class CodeSigner: Sendable {
+    @concurrent func sign(appURL: URL) async throws {
         try removeQuarantineIfPresent(appURL: appURL)
         try runProcess(
             executable: "/usr/bin/codesign",
@@ -42,13 +40,13 @@ final class CodeSigner {
             return
         }
 
+        let output = String(data: outputPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         process.waitUntilExit()
 
         if process.terminationStatus == 0 {
             return
         }
 
-        let output = String(data: outputPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         let notPresent = output.contains("No such xattr") || output.contains("No such file")
         if !notPresent {
             throw ParallelizerError.commandFailed(
@@ -69,9 +67,9 @@ final class CodeSigner {
         process.standardError = outputPipe
 
         try process.run()
-        process.waitUntilExit()
 
         let output = String(data: outputPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        process.waitUntilExit()
 
         if process.terminationStatus != 0 {
             throw ParallelizerError.commandFailed(

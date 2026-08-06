@@ -1,6 +1,6 @@
 import Foundation
 
-struct ParallelProfile: Identifiable, Hashable {
+nonisolated struct ParallelProfile: Identifiable, Hashable {
     let id = UUID()
     let sourceAppURL: URL
     let clonedAppURL: URL
@@ -12,7 +12,17 @@ struct ParallelProfile: Identifiable, Hashable {
     let bundleIdentifier: String
 }
 
-enum ParallelizerError: LocalizedError {
+nonisolated struct InstalledClone: Identifiable, Hashable {
+    var id: String { appURL.path }
+    let appURL: URL
+    let displayName: String
+    let profileName: String
+    let bundleIdentifier: String
+    let profileRootURL: URL
+    let sourceAppName: String?
+}
+
+nonisolated enum ParallelizerError: LocalizedError {
     case emptyProfileName
     case invalidAppBundle(URL)
     case missingInfoPlist(URL)

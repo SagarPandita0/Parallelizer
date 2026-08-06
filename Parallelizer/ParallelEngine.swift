@@ -1,6 +1,6 @@
 import Foundation
 
-enum ParallelEngine {
+nonisolated enum ParallelEngine {
 
     static func sanitizedProfileName(_ rawValue: String) -> String {
         rawValue
@@ -36,7 +36,7 @@ enum ParallelEngine {
         let profile = slug(profileName)
         let identifier = "parallelizer.\(base).\(profile)"
 
-        if identifier.split(separator: ".").contains(where: \.isEmpty) {
+        if identifier.split(separator: ".", omittingEmptySubsequences: false).contains(where: \.isEmpty) {
             throw ParallelizerError.invalidBundleIdentifier(identifier)
         }
 
@@ -65,6 +65,17 @@ enum ParallelEngine {
         profileRoot.appendingPathComponent("home", isDirectory: true)
     }
 
+    static func launchEnvironmentOverrides(profileRoot: URL, profileHome: URL) -> [String: String] {
+        [
+            "HOME": profileHome.path,
+            "CFFIXED_USER_HOME": profileHome.path,
+            "XDG_CONFIG_HOME": profileHome.appendingPathComponent(".config", isDirectory: true).path,
+            "XDG_CACHE_HOME": profileHome.appendingPathComponent(".cache", isDirectory: true).path,
+            "TMPDIR": profileRoot.appendingPathComponent("tmp", isDirectory: true).path,
+            "PARALLELIZER_PROFILE_ROOT": profileRoot.path
+        ]
+    }
+
     static func bootstrapDirectories(profileRoot: URL) -> [URL] {
         let home = profileHome(profileRoot: profileRoot)
 
@@ -80,9 +91,5 @@ enum ParallelEngine {
             home.appendingPathComponent(".config", isDirectory: true),
             home.appendingPathComponent(".cache", isDirectory: true)
         ]
-    }
-
-    static func shellQuoted(_ value: String) -> String {
-        "'\(value.replacingOccurrences(of: "'", with: "'\"'\"'"))'"
     }
 }

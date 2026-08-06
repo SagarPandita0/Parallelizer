@@ -54,7 +54,8 @@ final class AppLauncher {
             executableURL: executableURL,
             profileRootURL: URL(fileURLWithPath: profileRoot, isDirectory: true),
             profileHomeURL: URL(fileURLWithPath: profileHome, isDirectory: true),
-            isElectron: bundle.object(forInfoDictionaryKey: "ElectronAsarIntegrity") != nil
+            isElectron: (bundle.object(forInfoDictionaryKey: "ParallelizerIsElectron") as? Bool)
+                ?? (bundle.object(forInfoDictionaryKey: "ElectronAsarIntegrity") != nil)
         )
     }
 
@@ -82,7 +83,7 @@ final class AppLauncher {
     private func activateLaunchedApp(bundleIdentifier: String, fallbackProcess: Process) async throws {
         for _ in 0..<20 {
             if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first {
-                app.activate(options: [.activateIgnoringOtherApps])
+                app.activate()
                 return
             }
 

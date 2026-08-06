@@ -1,9 +1,7 @@
 import Foundation
 
-final class AppCloner {
-    nonisolated init() {}
-
-    func cloneApp(originalURL: URL, profileName rawProfileName: String) throws -> ParallelProfile {
+nonisolated final class AppCloner: Sendable {
+    @concurrent func cloneApp(originalURL: URL, profileName rawProfileName: String) async throws -> ParallelProfile {
         let fileManager = FileManager.default
 
         guard originalURL.pathExtension == "app" else {
@@ -106,6 +104,7 @@ final class AppCloner {
         plist["ParallelizerProfileName"] = profileName
         plist["ParallelizerProfileRoot"] = profileRootURL.path
         plist["ParallelizerProfileHome"] = profileHomeURL.path
+        plist["ParallelizerIsElectron"] = isElectronBundle
         try validateExecutable(in: appURL, plist: plist)
         try updateNestedHelperBundles(
             in: appURL,

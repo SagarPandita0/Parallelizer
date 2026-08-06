@@ -32,8 +32,8 @@ final class ProfileManager: ObservableObject {
         defer { isWorking = false }
 
         do {
-            let profile = try cloner.cloneApp(originalURL: appURL, profileName: profileName)
-            try signer.sign(appURL: profile.clonedAppURL)
+            let profile = try await cloner.cloneApp(originalURL: appURL, profileName: profileName)
+            try await signer.sign(appURL: profile.clonedAppURL)
             try await launcher.launch(appURL: profile.clonedAppURL)
 
             lastCreatedProfile = profile

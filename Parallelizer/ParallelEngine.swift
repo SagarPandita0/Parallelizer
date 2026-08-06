@@ -1,6 +1,6 @@
 import Foundation
 
-enum ParallelEngine {
+nonisolated enum ParallelEngine {
 
     static func sanitizedProfileName(_ rawValue: String) -> String {
         rawValue
@@ -36,7 +36,7 @@ enum ParallelEngine {
         let profile = slug(profileName)
         let identifier = "parallelizer.\(base).\(profile)"
 
-        if identifier.split(separator: ".").contains(where: \.isEmpty) {
+        if identifier.split(separator: ".", omittingEmptySubsequences: false).contains(where: \.isEmpty) {
             throw ParallelizerError.invalidBundleIdentifier(identifier)
         }
 
@@ -80,9 +80,5 @@ enum ParallelEngine {
             home.appendingPathComponent(".config", isDirectory: true),
             home.appendingPathComponent(".cache", isDirectory: true)
         ]
-    }
-
-    static func shellQuoted(_ value: String) -> String {
-        "'\(value.replacingOccurrences(of: "'", with: "'\"'\"'"))'"
     }
 }

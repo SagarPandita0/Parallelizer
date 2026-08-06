@@ -11,6 +11,8 @@ It works by cloning an app bundle, giving the clone a new bundle identifier, re-
 - Updates Electron helper bundle identifiers when needed
 - Installs a launch shim inside the clone so the profile environment applies
   no matter how the clone is opened (Finder, Dock, Spotlight, or Parallelizer)
+- Badges the clone's icon with the profile's first letter so clones are
+  easy to tell apart in the Dock and Spotlight
 - Re-signs the cloned bundle with an ad-hoc signature
 - Launches the clone as a separate app instance
 - Creates a per-profile folder under `~/Library/ParallelizerProfiles/`

@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 nonisolated final class AppCloner: Sendable {
@@ -98,10 +99,11 @@ nonisolated final class AppCloner: Sendable {
         let isElectronBundle = isElectronApp(plist: plist, appURL: appURL)
 
         plist["CFBundleIdentifier"] = bundleIdentifier
-        if !isElectronBundle {
-            plist["CFBundleName"] = cloneDisplayName
-            plist["CFBundleDisplayName"] = cloneDisplayName
-        }
+        // Renaming is safe for Electron bundles too: Electron reads its
+        // internal app name from package.json, not the plist, and clones
+        // always run with an explicit --user-data-dir.
+        plist["CFBundleName"] = cloneDisplayName
+        plist["CFBundleDisplayName"] = cloneDisplayName
         plist["ParallelizerProfileName"] = profileName
         plist["ParallelizerProfileRoot"] = profileRootURL.path
         plist["ParallelizerProfileHome"] = profileHomeURL.path
@@ -123,6 +125,7 @@ nonisolated final class AppCloner: Sendable {
         )
         plist["ParallelizerOriginalExecutable"] = originalExecutable
         plist["CFBundleExecutable"] = Self.shimExecutableName
+        installBadgedIcon(in: appURL, plist: &plist, profileName: profileName)
         try updateNestedHelperBundles(
             in: appURL,
             mainBundleIdentifier: bundleIdentifier,
@@ -140,6 +143,162 @@ nonisolated final class AppCloner: Sendable {
     }
 
     static let shimExecutableName = "parallelizer-launcher"
+
+    /// Badges the clone's icon with the profile's first letter so clones are
+    /// distinguishable from the original in the Dock and Spotlight.
+    /// Best-effort: any failure leaves the original icon in place.
+    private func installBadgedIcon(
+        in appURL: URL,
+        plist: inout [String: Any],
+        profileName: String
+    ) {
+        guard
+            let letter = profileName.trimmingCharacters(in: .whitespacesAndNewlines).first,
+            let baseIcon = loadBaseIcon(appURL: appURL, plist: plist)
+        else {
+            return
+        }
+
+        let iconURL = appURL
+            .appendingPathComponent("Contents", isDirectory: true)
+            .appendingPathComponent("Resources", isDirectory: true)
+            .appendingPathComponent("ParallelizerIcon.icns")
+
+        guard writeBadgedIcon(
+            base: baseIcon,
+            letter: String(letter).uppercased(),
+            color: Self.badgeColor(for: profileName),
+            to: iconURL
+        ) else {
+            return
+        }
+
+        plist["CFBundleIconFile"] = "ParallelizerIcon"
+        // An asset-catalog icon reference would take precedence over
+        // CFBundleIconFile, so drop it.
+        plist.removeValue(forKey: "CFBundleIconName")
+    }
+
+    private func loadBaseIcon(appURL: URL, plist: [String: Any]) -> NSImage? {
+        if let iconFile = plist["CFBundleIconFile"] as? String, !iconFile.isEmpty {
+            let fileName = iconFile.hasSuffix(".icns") ? iconFile : "\(iconFile).icns"
+            let iconURL = appURL
+                .appendingPathComponent("Contents", isDirectory: true)
+                .appendingPathComponent("Resources", isDirectory: true)
+                .appendingPathComponent(fileName)
+
+            if let image = NSImage(contentsOf: iconURL) {
+                return image
+            }
+        }
+
+        return nil
+    }
+
+    private static func badgeColor(for profileName: String) -> NSColor {
+        let palette: [(CGFloat, CGFloat, CGFloat)] = [
+            (0.20, 0.47, 0.96), // blue
+            (0.58, 0.35, 0.95), // purple
+            (0.13, 0.65, 0.42), // green
+            (0.92, 0.50, 0.15), // orange
+            (0.87, 0.26, 0.53), // pink
+            (0.11, 0.61, 0.68)  // teal
+        ]
+
+        // Stable hash (Swift's hashValue is seeded per launch).
+        var hash: UInt64 = 5381
+        for scalar in profileName.lowercased().unicodeScalars {
+            hash = hash &* 33 &+ UInt64(scalar.value)
+        }
+        let pick = palette[Int(hash % UInt64(palette.count))]
+        return NSColor(calibratedRed: pick.0, green: pick.1, blue: pick.2, alpha: 1)
+    }
+
+    private func writeBadgedIcon(base: NSImage, letter: String, color: NSColor, to iconURL: URL) -> Bool {
+        let sizes = [16, 32, 64, 128, 256, 512, 1024]
+        guard let destination = CGImageDestinationCreateWithURL(
+            iconURL as CFURL,
+            "com.apple.icns" as CFString,
+            sizes.count,
+            nil
+        ) else {
+            return false
+        }
+
+        for size in sizes {
+            guard let rep = renderBadgedIcon(base: base, letter: letter, color: color, pixels: size),
+                  let cgImage = rep.cgImage else {
+                return false
+            }
+            CGImageDestinationAddImage(destination, cgImage, nil)
+        }
+
+        return CGImageDestinationFinalize(destination)
+    }
+
+    private func renderBadgedIcon(base: NSImage, letter: String, color: NSColor, pixels: Int) -> NSBitmapImageRep? {
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: pixels,
+            pixelsHigh: pixels,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ), let context = NSGraphicsContext(bitmapImageRep: rep) else {
+            return nil
+        }
+
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = context
+        context.imageInterpolation = .high
+
+        let canvas = CGFloat(pixels)
+        base.draw(
+            in: NSRect(x: 0, y: 0, width: canvas, height: canvas),
+            from: .zero,
+            operation: .sourceOver,
+            fraction: 1
+        )
+
+        // Badge: colored disc with the profile letter, bottom-right.
+        let diameter = canvas * 0.42
+        let inset = canvas * 0.04
+        let badgeRect = NSRect(
+            x: canvas - diameter - inset,
+            y: inset,
+            width: diameter,
+            height: diameter
+        )
+
+        let ring = NSBezierPath(ovalIn: badgeRect)
+        NSColor.white.setFill()
+        ring.fill()
+
+        let discRect = badgeRect.insetBy(dx: diameter * 0.06, dy: diameter * 0.06)
+        let disc = NSBezierPath(ovalIn: discRect)
+        color.setFill()
+        disc.fill()
+
+        let font = NSFont.systemFont(ofSize: diameter * 0.58, weight: .bold)
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: NSColor.white
+        ]
+        let text = NSAttributedString(string: letter, attributes: attributes)
+        let textSize = text.size()
+        text.draw(at: NSPoint(
+            x: discRect.midX - textSize.width / 2,
+            y: discRect.midY - textSize.height / 2
+        ))
+
+        context.flushGraphics()
+        NSGraphicsContext.restoreGraphicsState()
+        return rep
+    }
 
     private func installLaunchShim(
         in appURL: URL,

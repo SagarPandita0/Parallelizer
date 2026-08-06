@@ -9,8 +9,6 @@ final class AppLauncher {
         let process = Process()
         process.executableURL = bundleMetadata.executableURL
         process.currentDirectoryURL = bundleMetadata.executableURL.deletingLastPathComponent()
-        process.environment = launchEnvironment(metadata: bundleMetadata)
-        process.arguments = launchArguments(metadata: bundleMetadata)
         process.standardInput = FileHandle.nullDevice
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
@@ -30,12 +28,15 @@ final class AppLauncher {
             .appendingPathComponent("Info.plist")
 
         guard
-            let bundle = Bundle(url: appURL),
-            let executableName = bundle.object(forInfoDictionaryKey: "CFBundleExecutable") as? String,
+            let plistData = try? Data(contentsOf: plistURL),
+            let plist = try? PropertyListSerialization.propertyList(
+                from: plistData,
+                options: [],
+                format: nil
+            ) as? [String: Any],
+            let executableName = plist["CFBundleExecutable"] as? String,
             !executableName.isEmpty,
-            let bundleIdentifier = bundle.object(forInfoDictionaryKey: "CFBundleIdentifier") as? String,
-            let profileRoot = bundle.object(forInfoDictionaryKey: "ParallelizerProfileRoot") as? String,
-            let profileHome = bundle.object(forInfoDictionaryKey: "ParallelizerProfileHome") as? String
+            let bundleIdentifier = plist["CFBundleIdentifier"] as? String
         else {
             throw ParallelizerError.unreadableInfoPlist(plistURL)
         }
@@ -51,33 +52,8 @@ final class AppLauncher {
 
         return BundleMetadata(
             bundleIdentifier: bundleIdentifier,
-            executableURL: executableURL,
-            profileRootURL: URL(fileURLWithPath: profileRoot, isDirectory: true),
-            profileHomeURL: URL(fileURLWithPath: profileHome, isDirectory: true),
-            isElectron: (bundle.object(forInfoDictionaryKey: "ParallelizerIsElectron") as? Bool)
-                ?? (bundle.object(forInfoDictionaryKey: "ElectronAsarIntegrity") != nil)
+            executableURL: executableURL
         )
-    }
-
-    private func launchEnvironment(metadata: BundleMetadata) -> [String: String] {
-        var environment = ProcessInfo.processInfo.environment
-        environment["HOME"] = metadata.profileHomeURL.path
-        environment["CFFIXED_USER_HOME"] = metadata.profileHomeURL.path
-        environment["XDG_CONFIG_HOME"] = metadata.profileHomeURL.appendingPathComponent(".config", isDirectory: true).path
-        environment["XDG_CACHE_HOME"] = metadata.profileHomeURL.appendingPathComponent(".cache", isDirectory: true).path
-        environment["TMPDIR"] = metadata.profileRootURL.appendingPathComponent("tmp", isDirectory: true).path
-        environment["PARALLELIZER_PROFILE_ROOT"] = metadata.profileRootURL.path
-        return environment
-    }
-
-    private func launchArguments(metadata: BundleMetadata) -> [String] {
-        guard metadata.isElectron else {
-            return []
-        }
-
-        let userDataDirectory = metadata.profileRootURL.appendingPathComponent("electron-user-data", isDirectory: true)
-        try? FileManager.default.createDirectory(at: userDataDirectory, withIntermediateDirectories: true)
-        return ["--user-data-dir=\(userDataDirectory.path)"]
     }
 
     private func activateLaunchedApp(bundleIdentifier: String, fallbackProcess: Process) async throws {
@@ -98,8 +74,5 @@ final class AppLauncher {
     private struct BundleMetadata {
         let bundleIdentifier: String
         let executableURL: URL
-        let profileRootURL: URL
-        let profileHomeURL: URL
-        let isElectron: Bool
     }
 }

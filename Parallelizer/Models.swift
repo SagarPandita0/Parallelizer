@@ -12,6 +12,16 @@ nonisolated struct ParallelProfile: Identifiable, Hashable {
     let bundleIdentifier: String
 }
 
+nonisolated struct InstalledClone: Identifiable, Hashable {
+    var id: String { appURL.path }
+    let appURL: URL
+    let displayName: String
+    let profileName: String
+    let bundleIdentifier: String
+    let profileRootURL: URL
+    let sourceAppName: String?
+}
+
 nonisolated enum ParallelizerError: LocalizedError {
     case emptyProfileName
     case invalidAppBundle(URL)

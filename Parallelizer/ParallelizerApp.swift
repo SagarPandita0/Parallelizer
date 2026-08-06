@@ -7,5 +7,6 @@ struct ParallelizerApp: App {
         WindowGroup {
             ContentView()
         }
+        .defaultSize(width: 680, height: 560)
     }
 }

@@ -9,9 +9,14 @@ It works by cloning an app bundle, giving the clone a new bundle identifier, re-
 - Clones a selected `.app` into `~/Applications/Parallelizer/`
 - Assigns the clone a unique `CFBundleIdentifier`
 - Updates Electron helper bundle identifiers when needed
+- Installs a launch shim inside the clone so the profile environment applies
+  no matter how the clone is opened (Finder, Dock, Spotlight, or Parallelizer)
 - Re-signs the cloned bundle with an ad-hoc signature
 - Launches the clone as a separate app instance
 - Creates a per-profile folder under `~/Library/ParallelizerProfiles/`
+- Lists installed clones so you can launch, reveal, or delete them
+- Preserves profile data when you re-clone with the same profile name, so
+  refreshing a clone after an app update keeps its logins and settings
 
 Example outputs:
 
@@ -48,6 +53,25 @@ In short: separate app bundle does not always mean separate app data.
 - Xcode, if you want to build from source
 
 Parallelizer uses `/usr/bin/codesign` for ad-hoc signing.
+
+## Build and Install (personal use, no Apple developer account)
+
+Parallelizer builds with Xcode's "Sign to Run Locally" ad-hoc identity, so no
+paid Apple Developer membership is needed. The build runs on the Mac that
+built it; on another Mac, Gatekeeper requires right-click → Open once, or a
+rebuild on that machine.
+
+```bash
+./scripts/build-install.sh
+```
+
+This produces a Release build and installs it to `/Applications/Parallelizer.app`.
+
+## Deleting Clones
+
+Delete clones from within Parallelizer. Deleting moves the clone to the
+Trash, with a choice to keep or also trash the clone's profile data
+(its logins and settings).
 
 ## Usage
 

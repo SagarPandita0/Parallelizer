@@ -5,6 +5,7 @@ import Foundation
 final class ProfileManager: ObservableObject {
     @Published private(set) var isWorking = false
     @Published private(set) var lastCreatedProfile: ParallelProfile?
+    @Published private(set) var clones: [InstalledClone] = []
     @Published var statusMessage: String?
     @Published var errorMessage: String?
 
@@ -20,6 +21,10 @@ final class ProfileManager: ObservableObject {
         self.cloner = cloner
         self.signer = signer
         self.launcher = launcher
+    }
+
+    func refreshClones() async {
+        clones = await CloneStore.installedClones()
     }
 
     func createProfile(appURL: URL, profileName: String) async {
@@ -41,5 +46,45 @@ final class ProfileManager: ObservableObject {
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
+
+        await refreshClones()
+    }
+
+    func launchClone(_ clone: InstalledClone) async {
+        guard !isWorking else { return }
+
+        isWorking = true
+        statusMessage = nil
+        errorMessage = nil
+
+        defer { isWorking = false }
+
+        do {
+            try await launcher.launch(appURL: clone.appURL)
+            statusMessage = "Launched \(clone.displayName)."
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    func deleteClone(_ clone: InstalledClone, includingProfileData: Bool) async {
+        guard !isWorking else { return }
+
+        isWorking = true
+        statusMessage = nil
+        errorMessage = nil
+
+        defer { isWorking = false }
+
+        do {
+            try await CloneStore.deleteClone(clone, includingProfileData: includingProfileData)
+            statusMessage = includingProfileData
+                ? "Moved \(clone.displayName) and its profile data to the Trash."
+                : "Moved \(clone.displayName) to the Trash. Profile data was kept."
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+
+        await refreshClones()
     }
 }

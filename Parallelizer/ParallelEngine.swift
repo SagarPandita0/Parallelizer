@@ -65,6 +65,17 @@ nonisolated enum ParallelEngine {
         profileRoot.appendingPathComponent("home", isDirectory: true)
     }
 
+    static func launchEnvironmentOverrides(profileRoot: URL, profileHome: URL) -> [String: String] {
+        [
+            "HOME": profileHome.path,
+            "CFFIXED_USER_HOME": profileHome.path,
+            "XDG_CONFIG_HOME": profileHome.appendingPathComponent(".config", isDirectory: true).path,
+            "XDG_CACHE_HOME": profileHome.appendingPathComponent(".cache", isDirectory: true).path,
+            "TMPDIR": profileRoot.appendingPathComponent("tmp", isDirectory: true).path,
+            "PARALLELIZER_PROFILE_ROOT": profileRoot.path
+        ]
+    }
+
     static func bootstrapDirectories(profileRoot: URL) -> [URL] {
         let home = profileHome(profileRoot: profileRoot)
 

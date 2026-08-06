@@ -101,3 +101,4 @@ Optional CLI build:
 
 ```sh
 xcodebuild -project Parallelizer.xcodeproj -scheme Parallelizer -sdk macosx build
+```

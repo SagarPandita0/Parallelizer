@@ -41,7 +41,7 @@ Works well for:
 
 May still require app-specific handling for:
 - Shared login sessions
-- Keychain-backed credentials
+- Apps that use the iCloud (data-protection) keychain
 - Sandboxed or App Store apps
 - Apps that expect a custom profile directory flag
 
@@ -66,6 +66,18 @@ rebuild on that machine.
 ```
 
 This produces a Release build and installs it to `/Applications/Parallelizer.app`.
+
+## Keychain
+
+Each clone gets its own keychain (`login.keychain-db` inside the profile
+home), created automatically on first launch so apps can store logins and
+tokens without hitting "A keychain cannot be found." Your real login
+keychain is never touched, and clone credentials never land in it.
+
+Profile keychains are created with an empty password and kept unlocked.
+That is convenient for personal use but weaker protection than your login
+keychain, so avoid storing high-value credentials in clones. Deleting a
+clone's profile data deletes its keychain with it.
 
 ## Deleting Clones
 

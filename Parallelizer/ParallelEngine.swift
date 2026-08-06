@@ -86,6 +86,7 @@ nonisolated enum ParallelEngine {
             home.appendingPathComponent("Library", isDirectory: true),
             home.appendingPathComponent("Library/Application Support", isDirectory: true),
             home.appendingPathComponent("Library/Caches", isDirectory: true),
+            home.appendingPathComponent("Library/Keychains", isDirectory: true),
             home.appendingPathComponent("Library/Logs", isDirectory: true),
             home.appendingPathComponent("Library/Preferences", isDirectory: true),
             home.appendingPathComponent(".config", isDirectory: true),

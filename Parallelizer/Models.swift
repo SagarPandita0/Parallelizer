@@ -20,6 +20,14 @@ nonisolated struct InstalledClone: Identifiable, Hashable {
     let bundleIdentifier: String
     let profileRootURL: URL
     let sourceAppName: String?
+    let sourceAppURL: URL?
+    let cloneVersion: String?
+    let sourceVersion: String?
+
+    var updateAvailable: Bool {
+        guard let cloneVersion, let sourceVersion else { return false }
+        return cloneVersion != sourceVersion
+    }
 }
 
 nonisolated enum ParallelizerError: LocalizedError {

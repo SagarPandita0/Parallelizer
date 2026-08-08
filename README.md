@@ -13,7 +13,10 @@ It works by cloning an app bundle, giving the clone a new bundle identifier, re-
   no matter how the clone is opened (Finder, Dock, Spotlight, or Parallelizer)
 - Badges the clone's icon with the profile's first letter so clones are
   easy to tell apart in the Dock and Spotlight
-- Re-signs the cloned bundle with an ad-hoc signature
+- Re-signs the cloned bundle with a private "Parallelizer Signing"
+  identity that is created automatically on first use (ad-hoc as a
+  fallback), so keychain and permission approvals survive re-cloning
+- Shows when a clone's original app has updated, with one-click Refresh
 - Launches the clone as a separate app instance
 - Creates a per-profile folder under `~/Library/ParallelizerProfiles/`
 - Lists installed clones so you can launch, reveal, or delete them
@@ -97,6 +100,32 @@ Profile keychains are created with an empty password and kept unlocked.
 That is convenient for personal use but weaker protection than your login
 keychain, so avoid storing high-value credentials in clones. Deleting a
 clone's profile data deletes its keychain with it.
+
+If macOS ever asks for a keychain password inside a clone, leave the
+password field empty and click Allow (or Always Allow) — the profile
+keychain's password is empty, not your macOS login password. With the
+stable signing identity this should only happen once per stored item.
+
+## Updating Clones
+
+In-app auto-updaters cannot work inside a clone: the update is signed by
+the original developer, the clone is re-signed by Parallelizer, and the
+updater correctly refuses the mismatch ("improperly signed" errors are
+expected — cancel them). Instead, let the original app update itself,
+then click Refresh on the clone in Parallelizer. The clone list shows
+"Update available" when the original's version is newer, and Refresh
+re-clones from the original while keeping all profile data, logins, and
+settings.
+
+## Signing
+
+Clones are signed with a private self-signed certificate ("Parallelizer
+Signing") kept in its own empty-password keychain at
+`~/Library/Application Support/Parallelizer/signing.keychain-db`. It is
+created automatically the first time a clone is signed. Because the
+identity is stable, macOS keeps treating a refreshed clone as the same
+app: keychain approvals and privacy permissions persist across refreshes
+and app updates. The certificate never leaves your machine.
 
 ## Deleting Clones
 

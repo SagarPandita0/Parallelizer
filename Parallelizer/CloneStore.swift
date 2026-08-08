@@ -47,8 +47,9 @@ nonisolated enum CloneStore {
             return nil
         }
 
-        let sourceAppName = (plist["ParallelizerSourceApp"] as? String)
-            .map { URL(fileURLWithPath: $0).deletingPathExtension().lastPathComponent }
+        let sourceAppURL = (plist["ParallelizerSourceApp"] as? String)
+            .map { URL(fileURLWithPath: $0, isDirectory: true) }
+        let sourceExists = sourceAppURL.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
 
         return InstalledClone(
             appURL: appURL,
@@ -56,7 +57,29 @@ nonisolated enum CloneStore {
             profileName: profileName,
             bundleIdentifier: bundleIdentifier,
             profileRootURL: URL(fileURLWithPath: profileRoot, isDirectory: true),
-            sourceAppName: sourceAppName
+            sourceAppName: sourceAppURL.map { $0.deletingPathExtension().lastPathComponent },
+            sourceAppURL: sourceExists ? sourceAppURL : nil,
+            cloneVersion: plist["CFBundleShortVersionString"] as? String,
+            sourceVersion: sourceExists ? sourceAppURL.flatMap { version(ofAppAt: $0) } : nil
         )
+    }
+
+    private static func version(ofAppAt appURL: URL) -> String? {
+        let plistURL = appURL
+            .appendingPathComponent("Contents", isDirectory: true)
+            .appendingPathComponent("Info.plist")
+
+        guard
+            let plistData = try? Data(contentsOf: plistURL),
+            let plist = try? PropertyListSerialization.propertyList(
+                from: plistData,
+                options: [],
+                format: nil
+            ) as? [String: Any]
+        else {
+            return nil
+        }
+
+        return plist["CFBundleShortVersionString"] as? String
     }
 }

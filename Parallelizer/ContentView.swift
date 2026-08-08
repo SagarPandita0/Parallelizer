@@ -126,6 +126,11 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                if clone.updateAvailable, let cloneVersion = clone.cloneVersion, let sourceVersion = clone.sourceVersion {
+                    Text("Update available: \(cloneVersion) → \(sourceVersion)")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
             }
 
             Spacer()
@@ -136,6 +141,14 @@ struct ContentView: View {
                 Label("Launch", systemImage: "play.fill")
             }
             .disabled(profileManager.isWorking)
+
+            Button {
+                Task { await profileManager.refreshClone(clone) }
+            } label: {
+                Label("Refresh", systemImage: "arrow.clockwise")
+            }
+            .help("Re-clone from the original app, keeping profile data. Use this to update a clone.")
+            .disabled(profileManager.isWorking || clone.sourceAppURL == nil)
 
             Button {
                 NSWorkspace.shared.activateFileViewerSelecting([clone.appURL])

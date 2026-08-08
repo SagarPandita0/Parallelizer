@@ -3,17 +3,17 @@ import Foundation
 nonisolated final class CodeSigner: Sendable {
     @concurrent func sign(appURL: URL) async throws {
         try removeQuarantineIfPresent(appURL: appURL)
-        try runProcess(
-            executable: "/usr/bin/codesign",
-            arguments: [
-                "--force",
-                "--deep",
-                "--sign",
-                "-",
-                "--timestamp=none",
-                appURL.path
-            ]
-        )
+
+        // A stable identity keeps keychain ACLs and permission grants valid
+        // across re-clones; ad-hoc is the fallback if it cannot be created.
+        let identity = SigningIdentity.ensureIdentity()
+        var arguments = ["--force", "--deep", "--sign", identity?.name ?? "-"]
+        if let identity {
+            arguments.append(contentsOf: ["--keychain", identity.keychainPath])
+        }
+        arguments.append(contentsOf: ["--timestamp=none", appURL.path])
+
+        try runProcess(executable: "/usr/bin/codesign", arguments: arguments)
 
         try runProcess(
             executable: "/usr/bin/codesign",

@@ -340,17 +340,22 @@ nonisolated final class AppCloner: Sendable {
 
         # Bootstrap a per-profile keychain so the clone can store credentials.
         # Without it, apps hit "A keychain cannot be found" because the
-        # redirected HOME has no keychain. Created once with an empty
-        # password and kept unlocked; deleted along with the profile.
-        KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
+        # redirected HOME has no keychain. It is deliberately NOT named
+        # "login" and NOT registered as the login keychain: macOS syncs the
+        # login keychain's password with the account password, which would
+        # override the empty password and force credential prompts. Instead
+        # it is a plain default keychain with an empty password, kept
+        # unlocked, and searched alongside the system keychain (needed for
+        # TLS roots). Removed along with the profile.
+        KEYCHAIN="$HOME/Library/Keychains/parallelizer.keychain-db"
         if [ ! -f "$KEYCHAIN" ]; then
             /bin/mkdir -p "$HOME/Library/Keychains"
             /usr/bin/security create-keychain -p '' "$KEYCHAIN" 2>/dev/null
-            /usr/bin/security default-keychain -s "$KEYCHAIN" 2>/dev/null
-            /usr/bin/security login-keychain -s "$KEYCHAIN" 2>/dev/null
-            /usr/bin/security set-keychain-settings "$KEYCHAIN" 2>/dev/null
         fi
+        /usr/bin/security set-keychain-settings "$KEYCHAIN" 2>/dev/null
         /usr/bin/security unlock-keychain -p '' "$KEYCHAIN" 2>/dev/null
+        /usr/bin/security list-keychains -d user -s "$KEYCHAIN" "/Library/Keychains/System.keychain" 2>/dev/null
+        /usr/bin/security default-keychain -s "$KEYCHAIN" 2>/dev/null
 
         # Publish browser native-messaging manifests the clone registered in
         # its redirected HOME into the real HOME, where browsers actually

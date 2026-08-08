@@ -50,6 +50,18 @@ final class ProfileManager: ObservableObject {
         await refreshClones()
     }
 
+    /// Re-clones from the recorded source app, preserving profile data.
+    /// This is the supported way to update a clone: in-app updaters cannot
+    /// validate inside a re-signed bundle.
+    func refreshClone(_ clone: InstalledClone) async {
+        guard let sourceAppURL = clone.sourceAppURL else {
+            errorMessage = "The original app for \(clone.displayName) could not be found."
+            return
+        }
+
+        await createProfile(appURL: sourceAppURL, profileName: clone.profileName)
+    }
+
     func launchClone(_ clone: InstalledClone) async {
         guard !isWorking else { return }
 

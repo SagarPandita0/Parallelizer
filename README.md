@@ -91,20 +91,21 @@ Notes:
 
 ## Keychain
 
-Each clone gets its own keychain (`login.keychain-db` inside the profile
-home), created automatically on first launch so apps can store logins and
-tokens without hitting "A keychain cannot be found." Your real login
-keychain is never touched, and clone credentials never land in it.
+Each clone gets its own keychain (`parallelizer.keychain-db` inside the
+profile home), created automatically on first launch so apps can store
+logins and tokens without hitting "A keychain cannot be found." Your real
+login keychain is never touched, and clone credentials never land in it.
 
-Profile keychains are created with an empty password and kept unlocked.
-That is convenient for personal use but weaker protection than your login
-keychain, so avoid storing high-value credentials in clones. Deleting a
-clone's profile data deletes its keychain with it.
+The profile keychain is a plain default keychain with an empty password,
+kept unlocked. It is deliberately not registered as the "login" keychain:
+macOS keeps the login keychain's password in sync with your account
+password, which would override the empty password and trigger repeated
+credential prompts. Because clones are signed with a stable identity and
+own the items they create, access is silent after the first launch.
 
-If macOS ever asks for a keychain password inside a clone, leave the
-password field empty and click Allow (or Always Allow) — the profile
-keychain's password is empty, not your macOS login password. With the
-stable signing identity this should only happen once per stored item.
+That empty password is convenient for personal use but weaker protection
+than your login keychain, so avoid storing high-value credentials in
+clones. Deleting a clone's profile data deletes its keychain with it.
 
 ## Updating Clones
 
